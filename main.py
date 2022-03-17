@@ -1,6 +1,8 @@
 import os
 import sqlite3
 import subprocess
+import tempfile
+import socket
 
 import typer
 
@@ -25,7 +27,7 @@ db.execute('''
 
 
 @app.command()
-def analyse(percentage_trigger: int = typer.Argument(50, help="Percentage difference to trigger notification")):
+def analyse(recipient: str, percentage_trigger: int = typer.Argument(50, help="Percentage difference to trigger notification")):
     version = db.execute('''SELECT MAX(version) FROM snapshot_version''').fetchone()[0]
 
     if version == 1:
@@ -34,16 +36,26 @@ def analyse(percentage_trigger: int = typer.Argument(50, help="Percentage differ
     latest = get_version(version)
     previous = get_version(version - 1)
 
-    for category in latest:
-        latest_count = latest[category]
-        prev_count = previous[category]
+    output = open(os.getcwd() + '/diff.txt', 'w')
 
-        if latest_count < prev_count:
-            percentage_change = round(((prev_count - latest_count) / prev_count) * 100, 2)
+    try:
+        for category in latest:
+            latest_count = latest[category]
+            prev_count = previous[category]
 
-            if percentage_change >= percentage_trigger:
-                typer.echo(
-                    f"Category {category} has decreased from {prev_count} to {latest_count}, a {percentage_change}% difference")
+            if latest_count < prev_count:
+                percentage_change = round(((prev_count - latest_count) / prev_count) * 100, 2)
+
+                if percentage_change >= percentage_trigger:
+                    msg = f"Category {category} has decreased from {prev_count} to {latest_count}, a {percentage_change}% difference"
+                    typer.echo(msg)
+                    output.write(msg + '\n')
+
+        if output.tell() > 0:
+            hostname = socket.gethostname()
+            command = f"""/usr/bin/mutt -e "set from='support@sonassi.com' realname='{hostname} | Sonassi" -s "C+B Categories have changed" -- {recipient} < {output.name}"""
+            subprocess.Popen(command, shell=True)
+    finally:
         pass
 
 

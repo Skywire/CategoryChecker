@@ -18,4 +18,6 @@ cd CategoryChecker
 
 ### Analyse snapshots
 
-`[python3 executable] ~/CategoryChecker/main.py analyse`
+Percentage trigger defaults to 50%, but can be set with an argument
+
+`[python3 executable] ~/CategoryChecker/main.py analyse [recipient] [percentage trigger]`
