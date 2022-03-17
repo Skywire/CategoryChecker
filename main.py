@@ -52,9 +52,12 @@ def analyse(recipient: str, percentage_trigger: int = typer.Argument(50, help="P
                     output.write(msg + '\n')
 
         if output.tell() > 0:
+            typer.echo("Significant differences found, sending notification")
             hostname = socket.gethostname()
             command = f"""/usr/bin/mutt -e "set from='support@sonassi.com' realname='{hostname} | Sonassi" -s "C+B Categories have changed" -- {recipient} < {output.name}"""
             subprocess.Popen(command, shell=True)
+        else:
+            typer.echo("No significant differences found")
     finally:
         pass
 
